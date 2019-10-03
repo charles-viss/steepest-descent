@@ -14,7 +14,7 @@ class PolyhedralModel():
     # Given matrices B and A (and optional inds argument / objective function),
     # builds a polyhedral model for computing steepest-descent circuits
     # as a gurobi linear program model
-    def __init__(self, B, A=None, active_inds=[], c=None, primal=True, method='primal_simplex'):
+    def __init__(self, B, A=None, active_inds=[], c=None, primal=True, method='dual_simplex'):
         
         self.model = gp.Model()
         self.primal = primal
@@ -63,6 +63,7 @@ class PolyhedralModel():
     def set_active_inds(self, active_inds):
         self.active_inds = active_inds
         for i in range(self.m_B):
+            self.y_pos[i].lb = 0.0
             self.y_pos[i].ub = 1.0
         for i in self.active_inds:
             self.y_pos[i].ub = 0.0
@@ -80,7 +81,7 @@ class PolyhedralModel():
             self.y_pos[i].ub = 1.0
             
         # solve the modified model to obtain desired solution    
-        self.model.Params.method = METHODS['deterministic_concurrent_simplex']
+        self.model.Params.method = 0
         self.model.optimize()
         
         # reset the model contraints back to its original state
