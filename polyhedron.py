@@ -51,24 +51,23 @@ class Polyhedron:
 	
 	#given a point x in P with feasible direction g, compute the maximum step size alpha
     def get_max_step_size(self, x, g, active_inds=None, y_pos=None):
-		
+	
+        inds = range(self.m_B)
         if y_pos is None:
-            B_g = self.B.dot(g)     
-            B_x = self.B.dot(x)
-            alpha = float('inf')
-            active_ind = None
-        
-        if active_inds is not None:
-            inds = [i for i in range(self.m_B) if i not in active_inds]
-        else:
-            inds = range(self.m_B)            
-        
+            inds = [i for i in range(self.m_B) if y_pos[i] > 0.0]
+        inds = [i for i in inds if i not in active_inds]
+
+        alpha = float('inf')
+        active_ind = None
         for i in inds:
-            if B_g[i] > EPS:
-                a = (self.d[i] - B_x[i]) / float(B_g[i])
-                if a <= alpha:
-                    alpha = a 
-                    active_ind = i
+            B_g_i = y_pos[i] if y_pos is not None else self.B[i].dot(g)
+            if B_g_i <= EPS:
+                continue
+            B_x_i = self.B[i].dot(x)
+            a = (self.d[i] - B_x_i) / float(B_g_i)
+            if a <= alpha:
+                alpha = a 
+                active_ind = i
         return alpha, active_ind
     
 
@@ -76,8 +75,8 @@ class Polyhedron:
     def build_gurobi_model(self, c=None, verbose=False, method='primal_simplex'):
 		
         if c is None:
-			c = self.c
-		assert c is not None, 'Provide an objective function'
+            c = self.c
+	assert c is not None, 'Provide an objective function'
 		
         self.model = gp.Model()
         self.x = []
@@ -104,13 +103,13 @@ class Polyhedron:
     def set_verbose(self, verbose):
         flag = 1 if verbose else 0
         with contextlib.redirect_stdout(None):
-			self.model.setParam(gp.GRB.Param.OutputFlag, flag)
+            self.model.setParam(gp.GRB.Param.OutputFlag, flag)
             
             
-	def set_method(self, method):
+    def set_method(self, method):
         self.method = method
-		with contextlib.redirect_stdout(None):
-			self.model.Params.method = METHODS[method]
+	with contextlib.redirect_stdout(None):
+            self.model.Params.method = METHODS[method]
             
             
     # find a feasible solution within the polyhedron
@@ -164,7 +163,7 @@ class Polyhedron:
             if abs(B_g[i]) <= EPS:
                 B_0 = np.concatenate((B_0, self.B[i,:].reshape((1 ,self.n))))
         if self.A is not None:
-                B_0 = np.concatenate((self.A, B_0), axis=0)
+            B_0 = np.concatenate((self.A, B_0), axis=0)
                 
         D = sympy.Matrix(B_0)
         ker_D = D.nullspace()

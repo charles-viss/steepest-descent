@@ -29,7 +29,7 @@ class PolyhedralModel():
                 self.y_neg.append(self.model.addVar(lb=0.0, ub=1.0, name='y_neg_{}'.format(i)))
                 self.model.addConstr(gp.LinExpr(list(B[i]) + [-1, 1], 
                                                 self.x + [self.y_pos[i], self.y_neg[i]]) == 0, 
-                                     name='B_{}'.format(i))
+                                                name='B_{}'.format(i))
     
             self.model.addConstr(gp.LinExpr([1]*(2*self.m_B), self.y_pos + self.y_neg) == 1, 
                                  name='1_norm')
@@ -68,8 +68,8 @@ class PolyhedralModel():
                 
     def set_method(self, method):
         self.method = method
-		with contextlib.redirect_stdout(None):
-			self.model.Params.method = METHODS[method]
+	with contextlib.redirect_stdout(None):
+            self.model.Params.method = METHODS[method]
           
     # warm start the model with the provided solution   
     def set_solution(self, g):
@@ -98,39 +98,18 @@ class PolyhedralModel():
         
         self.model.optimize()
         if self.model.status != gp.GRB.Status.OPTIMAL:
-            raise RuntimeError('Model failed to solve')
+            raise RuntimeError('Failed to find steepst-descent direction.')
             
         g = self.model.getAttr('x', self.x)
+        y_pos = self.model.getAttr('x', self.y_pos)
         steepness = self.model.objVal
         num_steps = self.model.getAttr('IterCount')
         solve_time = self.model.getAttr('Runtime')
         
-        return np.asarray(g), steepness, num_steps, solve_time
+        return np.asarray(g), np.asarray(y_pos), steepness, num_steps, solve_time
                 
     def reset(self):
         self.model.reset()
 
 
-            
-#B = np.array([
-#        [1, 0, 0],
-#        [0, 0, -1],
-#        [0, -1, -1],
-#        [0, -1, 0],
-#        [2, 1, 1],
-#        [3, 3, -1]]) 
-#A = np.array([[0, 1, -1]])
-#    
-#c = np.array([-8, -1, -5])
-#x_initial = np.array([4./18, -3./18, 3./18])
-#active_inds = [0]
-#
-#pm = PolyhedralModel(B=B, c=c, active_inds=active_inds, A=A)
-##pm.set_solution(x_initial)
-#g, s = pm.compute_sd_direction()
-#        
-#print('Steepest-descent circuit:')
-#print(g)
-#
-#print('Steepness')
-#print(s)
+
