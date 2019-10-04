@@ -1,13 +1,8 @@
 import numpy as np
 import gurobipy as gp
+import contextlib
 
-INF = 10e100
-METHODS = {'primal_simplex': 0,
-          'dual_simplex': 1,
-          'barrier': 2,
-          'concurrent': 3,
-          'deterministic_concurrent': 4,
-          'deterministic_concurrent_simplex': 5,}
+
 
 class PolyhedralModel():
     
@@ -15,6 +10,8 @@ class PolyhedralModel():
     # builds a polyhedral model for computing steepest-descent circuits
     # as a gurobi linear program model
     def __init__(self, B, A=None, active_inds=[], c=None, primal=True, method='dual_simplex'):
+        
+        print('Building polyhedral model...')
         
         self.model = gp.Model()
         self.primal = primal
@@ -54,6 +51,7 @@ class PolyhedralModel():
             raise RuntimeError('Not yet implemented')
             
         self.model.update()
+        print('Polyhedral model built!')
                 
                 
     def set_objective(self, c):
@@ -70,7 +68,8 @@ class PolyhedralModel():
                 
     def set_method(self, method):
         self.method = method
-        self.model.Params.method = METHODS[method]
+		with contextlib.redirect_stdout(None):
+			self.model.Params.method = METHODS[method]
           
     # warm start the model with the provided solution   
     def set_solution(self, g):

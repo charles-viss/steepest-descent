@@ -1,17 +1,19 @@
 import math
-import numpy
 from polyhedral_model import PolyhedralModel
 import time
 
-def steepest_descent_augmentation_scheme(P, c, x, verbose=False):
+from utils import result
+
+def steepest_descent_augmentation_scheme(P, x, c=None, verbose=False, method='dual_simplex'):
     """
 Given a polyhedron P with feasible point x and an objective function c,
 solve the linear program min{c^T x : x in P} via the steepest descent circuit augmentation scheme.
 Returns result object containing optimal solution and objective function value.
     """
     
-    P.c = c
-    pm = P.build_polyhedral_model(x=x)
+    if c is not None:
+        P.set_objective(c)
+    pm = P.build_polyhedral_model(x=x, method=method)
     
     descent_circuits = []
     step_sizes = []
@@ -62,34 +64,3 @@ Returns result object containing optimal solution and objective function value.
         
     return result(status=0, x=x_current, circuits=descent_circuits, steps=step_sizes, c=c,
                   simplex_iters=simplex_iters, solve_times=solve_times)
-        
-
-class result:
-    def __init__(self, status, x=None, circuits=None, steps=None, c=None,
-                 simplex_iters=[], solve_times=[]):
-        self.status = status
-        self.x = x
-        self.circuits = circuits
-        self.steps = steps
-        self.augmentations = len(steps)
-        self.simplex_iters = simplex_iters
-        self.solve_times = solve_times
-        
-        if self.status == 0:
-            self.obj = numpy.dot(c, x)
-            
-    def __str__(self):
-        if self.status == 1:
-            return ('Problem is unbounded.'
-                        + '\nSteepest descent unbounded circuit: ' + str(self.circuits[-1].T)
-                    )
-        elif self.status == 0:
-            return (#'Optimal solution is x = ' + str(self.x.T) +
-                         '\nOptimal objective: ' + str(self.obj)
-                        + '\nNumber of iterations: ' + str(len(self.circuits))
-                        + '\nTotal simplex iterations: {}'.format(sum(self.simplex_iters))
-                        + '\nAverage num simplex iterations {}'.format(sum(self.simplex_iters)/len(self.simplex_iters))
-                        + '\nFirst solve time {}'.format(self.solve_times[0])
-                        + '\nAverage solve time {}'.format(sum(self.solve_times)/len(self.solve_times))
-                        + '\nTotal solve time: {}'.format(sum(self.solve_times))
-                    )

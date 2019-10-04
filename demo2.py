@@ -15,7 +15,7 @@ mps_fn = os.path.join(test_dir, mps_fn)
 #mps_fn = 'agg3.mps'
 #mps_fn = 'pilot.mps'
 #mps_fn = 'test_problems/ship12l' # bad case
-mps_fn = 'test_problems/standgub' # good example
+#mps_fn = 'test_problems/standgub' # good example
 
 print('Reading {}...'.format(mps_fn))
 c, B, d, A, b = read_mps_preprocess(mps_fn)
@@ -36,7 +36,7 @@ print('Solve time: {}'.format(solve_time))
 time.sleep(3)
 
 print('\nSolving with steepest descent...')
-result = sdac(P, c, x_feasible)
+result = sdac(P, x_feasible, c)
 x_optimal = result.x
 print('\nSolution using steepest-descent augmentation:')
 print(result)
