@@ -4,7 +4,7 @@ import gurobipy as gp
 import contextlib
 
 from polyhedral_model import PolyhedralModel
-from utils import result, EPS, INF
+from utils import result, EPS, INF, METHODS
 
 
 #class for representing a general polyhedron of the form:
@@ -40,12 +40,10 @@ class Polyhedron:
     
     # construct polyhedral model for computing circuits
     def build_polyhedral_model(self, x=None, primal=True, method='dual_simplex'):
-        print('Building polyhedral model...')
         active_inds = []
         if x is not None:
             active_inds = self.get_active_constraints(x)
         pm = PolyhedralModel(B=self.B, A=self.A, c=self.c, active_inds=active_inds, method=method)
-        print('Polyhedral model built!')
         return pm
     
 	
@@ -76,16 +74,16 @@ class Polyhedron:
 		
         if c is None:
             c = self.c
-	assert c is not None, 'Provide an objective function'
+        assert c is not None, 'Provide an objective function'
 		
         self.model = gp.Model()
         self.x = []
         for i in range(self.n):
-            self.x.append(model.addVar(lb=-INF, ub=INF, name='x_{}'.format(i)))
+            self.x.append(self.model.addVar(lb=-INF, ub=INF, name='x_{}'.format(i)))
         for i in range(self.m_A):
-            self.model.addConstr(gp.LinExpr(self.A[i], x) == self.b[i], name='A_{}'.format(i))
+            self.model.addConstr(gp.LinExpr(self.A[i], self.x) == self.b[i], name='A_{}'.format(i))
         for i in range(self.m_B):
-            self.model.addConstr(gp.LinExpr(self.B[i], x) <= self.d[i], name='B_{}'.format(i))
+            self.model.addConstr(gp.LinExpr(self.B[i], self.x) <= self.d[i], name='B_{}'.format(i))
             
         self.set_objective(c)     
         self.set_verbose(verbose)		
@@ -96,7 +94,7 @@ class Polyhedron:
     def set_objective(self, c):
         self.c = c
         if self.model is not None:
-            self.model.setObjective(gp.LinExpr(c, x))
+            self.model.setObjective(gp.LinExpr(self.c, self.x))
 
           
     # change model verbose settings
@@ -108,7 +106,7 @@ class Polyhedron:
             
     def set_method(self, method):
         self.method = method
-	with contextlib.redirect_stdout(None):
+        with contextlib.redirect_stdout(None):
             self.model.Params.method = METHODS[method]
             
             
@@ -117,7 +115,7 @@ class Polyhedron:
         
         c_orig = np.copy(self.c)
         c = np.zeros(self.n)
-        if self.model is not None:
+        if self.model is None:
             self.build_gurobi_model(c, verbose)
         else:
             self.set_objective(c)           
@@ -132,7 +130,7 @@ class Polyhedron:
         
         
     # sovle linear program using traditional simplex method; option to give warm started model
-    def solve_lp(self, c=None, verbose=False):
+    def solve_lp(self, c=None, verbose=False, record_objs=True):
         
         if c is None:
             assert self.c is not None, 'Need objective function'
@@ -140,17 +138,27 @@ class Polyhedron:
          
         if self.model is None:
             self.build_gurobi_model(c=c)
+        self.set_objective(c)  
             
-        self.set_objective(c)             
-        self.model.optimize()
+        obj_values = []
+        def obj_callback(model, where):
+            if where == gp.GRB.Callback.SIMPLEX:
+                obj = model.cbGet(gp.GRB.Callback.SPX_OBJVAL)
+                obj_values.append(obj)
+                
+        if record_objs:
+            self.model.optimize(obj_callback)
+        else:
+            self.model.optimize()
         if self.model.status != gp.GRB.Status.OPTIMAL:
             raise RuntimeError('Model failed to solve')
             
         x_optimal = self.model.getAttr('x', self.x)        
         obj_optimal = self.model.objVal
-        num_steps = model.getAttr('IterCount')
-        solve_time = model.getAttr('Runtime')
-        output = result(0, x=x_optimal, obj=obj_optimal, n_iters=num_steps, solve_time=solve_time)        
+        num_steps = self.model.getAttr('IterCount')
+        solve_time = self.model.getAttr('Runtime')
+        output = result(0, x=x_optimal, obj=obj_optimal, n_iters=num_steps, solve_time=solve_time,
+                        obj_values=obj_values)        
         return output
         
                 

@@ -2,6 +2,7 @@ import numpy as np
 import gurobipy as gp
 import contextlib
 
+from utils import METHODS, INF
 
 
 class PolyhedralModel():
@@ -44,6 +45,7 @@ class PolyhedralModel():
                 
             if c is not None:
                 self.set_objective(c)
+                  
             self.set_active_inds(active_inds)
             self.set_method(method)
                 
@@ -68,8 +70,8 @@ class PolyhedralModel():
                 
     def set_method(self, method):
         self.method = method
-	with contextlib.redirect_stdout(None):
-            self.model.Params.method = METHODS[method]
+        #with contextlib.redirect_stdout(None):
+        self.model.Params.method = METHODS[method]
           
     # warm start the model with the provided solution   
     def set_solution(self, g):
