@@ -65,8 +65,8 @@ class result:
                    'alg_type': self.alg_type}
         if self.alg_type == 'steepest-descent':
             results['simplex_iters'] = self.simplex_iters
-            results['sove_times'] = self.solve_times
-            results['sub_times']: self.sub_times
+            results['solve_times'] = self.solve_times
+            results['sub_times'] = self.sub_times
             
         with open(fn, 'wb') as f:
             pickle.dump(results, f)
