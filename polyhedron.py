@@ -22,6 +22,7 @@ class Polyhedron:
         self.m_B, self.n = self.B.shape
         self.m_A = self.A.shape[0] if self.A is not None else 0
         self.model = None
+        print('Problem size: n = {},  m_B = {},  m_A = {}'.format(self.n, self.m_B, self.m_A))
     
     # get active constraints at given solution
     def get_active_constraints(self, x):

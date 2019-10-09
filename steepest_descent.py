@@ -3,7 +3,8 @@ import time
 
 from utils import result, EPS
 
-def steepest_descent_augmentation_scheme(P, x, c=None, verbose=False, method='dual_simplex'):
+def steepest_descent_augmentation_scheme(P, x, c=None, verbose=False, method='dual_simplex',
+                                         max_time=300):
     """
 Given a polyhedron P with feasible point x and an objective function c,
 solve the linear program min{c^T x : x in P} via the steepest descent circuit augmentation scheme.
@@ -79,6 +80,9 @@ Returns result object containing optimal solution and objective function value.
         sub_times['sd'].append(t7 - t6)
         
         iteration += 1
+        current_time = t7 - t0
+        if current_time > max_time:
+            return result(status=2)
 
     t8 = time.time()
     total_time = t8 - t1
