@@ -1,4 +1,6 @@
 import pickle
+import random
+import numpy as np
 
 METHODS = {'auto': -1,
 		   'primal_simplex': 0,
@@ -13,6 +15,62 @@ EPS = 10e-10
 
 def avg(x):
     return float(sum(x)) / float(len(x))
+
+
+# constructs a bounded/fixed-size partition polytope with the given parameters
+# n is number of items,  k is the number of clusters,
+# ub are cluster size upper bounds, and lb are cluster size lower bounds
+class PartitionPolytope():
+    def __init__(self, n, k, ub, lb):
+        assert len(ub) == k and len(lb) == k, 'Invalid cluster size bounds'
+        self.n = n
+        self.k = k
+        self.ub = ub
+        self.lb = lb
+
+        self.A = []
+        self.b = []
+        self.B = []
+        self.d = []
+
+        # unique item assignment constraints
+        for j in range(n):
+            row = np.zeros(n, dtype=np.uint8)
+            for i in range(k):
+                row[i*n + j] = 1
+            self.A.append(row)
+            self.b.append(1)
+
+        # cluster size constraints
+        for i in range(k):
+            row = np.zeros(n, dtype=np.uint8)
+            for j in range(n):
+                row[i*n + j] = 1
+            if ub[i] == lb[i]:
+                self.A.append(row)
+                self.b.append(ub[i])
+            elif ub[i] > lb[i]:
+                self.B.append(row)
+                self.B.append(-1*row)
+                self.d.append(ub[i])
+                self.d.append(-1*lb[i])
+            else:
+                raise ValueError('Invalid cluster size bounds')
+
+        # variable nonnegativity constraints
+        for i in range(n*k):
+            row = np.zeros(n, dtype=np.uint8)
+            row[i] = -1
+            self.B.append(row)
+            self.d.append(0)
+
+        self.A = np.asarray(self.A, dtype=np.uint8)
+        self.b = np.asarray(self.b, dtype=np.uint8)
+        self.B = np.asarray(self.B, dtype=np.uint8)
+        self.d = np.asarray(self.d, dtype=np.uint8)
+
+    def get_constraint_matrices(self):
+        return (self.A, self.b, self.B, self.d))
 
 
 class result:
