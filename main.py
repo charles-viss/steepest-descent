@@ -5,12 +5,10 @@ import time
 import os
 import random
 
-problem_dir = 'test_problems'
 
 
 def main(mps_fn, results_dir=None, max_time=300):
     
-    mps_fn = os.path.join(problem_dir, mps_fn)
     print('Reading {}...'.format(mps_fn))
     c, B, d, A, b = read_mps_preprocess(mps_fn)
     
@@ -25,7 +23,7 @@ def main(mps_fn, results_dir=None, max_time=300):
     print('\nSolution using simplex method:')
     print(lp_result)
     
-    time.sleep(2)
+    #time.sleep(2)
     
     print('\nSolving with steepest descent...')
     sd_result = sdac(P, x_feasible, c=c, method='dual_simplex', max_time=max_time)

@@ -2,6 +2,7 @@ import numpy as np
 import sympy
 import gurobipy as gp
 import contextlib
+import time
 
 from polyhedral_model import PolyhedralModel
 from utils import result, EPS, INF, METHODS
@@ -139,7 +140,8 @@ class Polyhedron:
          
         if self.model is None:
             self.build_gurobi_model(c=c)
-        self.set_objective(c)  
+        self.set_objective(c)
+        t0 = time.time()
             
         obj_values = []
         def obj_callback(model, where):
@@ -157,7 +159,8 @@ class Polyhedron:
         x_optimal = self.model.getAttr('x', self.x)        
         obj_optimal = self.model.objVal
         num_steps = self.model.getAttr('IterCount')
-        solve_time = self.model.getAttr('Runtime')
+        #solve_time = self.model.getAttr('Runtime')
+        solve_time = time.time() - t0
         output = result(0, x=x_optimal, obj=obj_optimal, n_iters=num_steps, solve_time=solve_time,
                         obj_values=obj_values)        
         return output
