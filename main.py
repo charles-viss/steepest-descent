@@ -2,31 +2,48 @@ from mps_reader_preprocessor import read_mps_preprocess
 from polyhedron import Polyhedron
 from steepest_descent import steepest_descent_augmentation_scheme as sdac
 import time
+import random
 import os
 import random
+import numpy as np
+
+from partition_polytope import PartitionPolytope
 
 
-
-def main(mps_fn, results_dir=None, max_time=300):
+def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex',
+         partition_polytope=False, n=0, k=0):
     
-    print('Reading {}...'.format(mps_fn))
-    c, B, d, A, b = read_mps_preprocess(mps_fn)
-    
-    print('Building polyhedron...')
-    P = Polyhedron(B, d, A, b, c)
+    if mps_fn:
+        print('Reading {}...'.format(mps_fn))
+        c, B, d, A, b = read_mps_preprocess(mps_fn)
+        print('Building polyhedron...')
+        P = Polyhedron(B, d, A, b, c)
+    elif partition_polytope:
+        print('Constructing partition polytope with n={} and k={}'.format(n, k))
+        
+        # randomly generate cluster size bounds and objective function
+        v1 = np.random.randint(0, n, size=k)
+        v2 = np.random.randint(0, n//k, size=k)
+        ub = [max(v1[i], v2[i]) for i in range(k)]
+        lb = [min(v1[i], v2[i]) for i in range(k)]
+        c = np.random.randint(0, 1000, size=n*k)
+        
+        P = PartitionPolytope(n, k, ub, lb, c)
     
     print('Finding feasible solution...')
     x_feasible = P.find_feasible_solution(verbose=False)
+    if partition_polytope:
+        print('Building gurobi model for simplex...')
+        P.build_gurobi_model(c=c)
+        P.set_solution(x_feasible)
     
     print('\nSolving with simplex method...')
     lp_result = P.solve_lp(verbose=False, record_objs=True)
     print('\nSolution using simplex method:')
     print(lp_result)
     
-    #time.sleep(2)
-    
     print('\nSolving with steepest descent...')
-    sd_result = sdac(P, x_feasible, c=c, method='dual_simplex', max_time=max_time)
+    sd_result = sdac(P, x_feasible, c=c, method=sd_method, max_time=max_time)
     print('\nSolution for {} using steepest-descent augmentation:'.format(os.path.basename(mps_fn)))
     print(sd_result)
     
@@ -35,7 +52,10 @@ def main(mps_fn, results_dir=None, max_time=300):
     
     if results_dir:
         if not os.path.exists(results_dir): os.mkdir(results_dir)
-        prefix = os.path.basename(mps_fn).split('.')[0]
+        if mps_fn:
+            prefix = os.path.basename(mps_fn).split('.')[0]
+        elif partition_polytope: 
+            prefix = 'n-{}_k-{}'.format(n, k)
         lp_fn = os.path.join(results_dir, prefix + '_lp.p')
         sd_fn = os.path.join(results_dir, prefix + '_sd.p')
         lp_result.save(lp_fn)
@@ -46,28 +66,21 @@ if __name__ == "__main__":
     
     mps_fns = os.listdir(problem_dir)
     mps_fn = random.choice(mps_fns)
-    #mps_fn = os.path.join(test_dir, mps_fn)
-
-    #mps_fn = 'agg3.mps'
-    #mps_fn = 'pilot.mps'
-    #mps_fn = 'test_problems/ship12l' # long example
-
-    mps_fn = 'standgub' # fast examples
-    #mps_fn = 'finnis'
-    #mps_fn = 'degen2'
-    #mps_fn = 'brandy.mps'
-    
-    #mps_fn = 'qap08 # long but successful 
-    #mps_fn = pilotnov
     
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument('--mps_fn', help='mps filename for problem to solve', default=mps_fn)
+    #parser.add_argument('--mps_fn', help='mps filename for problem to solve', default=mps_fn)
+    parser.add_argument('--mps_fn', help='mps filename for problem to solve', default='')
+    parser.add_argument('--sd_method', help='algorithm for computing s.d. directions', type=str, default='dual_simplex')
+    parser.add_argument('--partition-polytope', help='use bounded/fixed-size partition polytope', action='store_true')
+    parser.add_argument('--n', help='num items for partition polytope', type=int, default=0)
+    parser.add_argument('--k', help='num clusters for partition polytope', type=int, default=0)
     parser.add_argument('--results_dir', help='directory for saving results', default='results')
     parser.add_argument('--max_time', help='max time for steepest descent algorithm in seconds',
                         default=300)
 
     args = parser.parse_args()
     
-    main(mps_fn=args.mps_fn, results_dir=args.results_dir, max_time=args.max_time)
+    main(mps_fn=args.mps_fn, results_dir=args.results_dir, max_time=args.max_time, sd_method=args.sd_method,
+         partition_polytope=args.partition_polytope, n=args.n, k=args.k)

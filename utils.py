@@ -17,72 +17,18 @@ def avg(x):
     return float(sum(x)) / float(len(x))
 
 
-# constructs a bounded/fixed-size partition polytope with the given parameters
-# n is number of items,  k is the number of clusters,
-# ub are cluster size upper bounds, and lb are cluster size lower bounds
-class PartitionPolytope():
-    def __init__(self, n, k, ub, lb):
-        assert len(ub) == k and len(lb) == k, 'Invalid cluster size bounds'
-        self.n = n
-        self.k = k
-        self.ub = ub
-        self.lb = lb
-
-        self.A = []
-        self.b = []
-        self.B = []
-        self.d = []
-
-        # unique item assignment constraints
-        for j in range(n):
-            row = np.zeros(n, dtype=np.uint8)
-            for i in range(k):
-                row[i*n + j] = 1
-            self.A.append(row)
-            self.b.append(1)
-
-        # cluster size constraints
-        for i in range(k):
-            row = np.zeros(n, dtype=np.uint8)
-            for j in range(n):
-                row[i*n + j] = 1
-            if ub[i] == lb[i]:
-                self.A.append(row)
-                self.b.append(ub[i])
-            elif ub[i] > lb[i]:
-                self.B.append(row)
-                self.B.append(-1*row)
-                self.d.append(ub[i])
-                self.d.append(-1*lb[i])
-            else:
-                raise ValueError('Invalid cluster size bounds')
-
-        # variable nonnegativity constraints
-        for i in range(n*k):
-            row = np.zeros(n, dtype=np.uint8)
-            row[i] = -1
-            self.B.append(row)
-            self.d.append(0)
-
-        self.A = np.asarray(self.A, dtype=np.uint8)
-        self.b = np.asarray(self.b, dtype=np.uint8)
-        self.B = np.asarray(self.B, dtype=np.uint8)
-        self.d = np.asarray(self.d, dtype=np.uint8)
-
-    def get_constraint_matrices(self):
-        return (self.A, self.b, self.B, self.d))
-
-
 class result:
     
-    def __init__(self, status, x=None, obj=None, n_iters=None, solve_time=None, alg_type='simplex',
+    def __init__(self, status, x=None, obj=None, n_iters=None, solve_time=None, iter_times=[], alg_type='simplex',
                  circuits=[], steps=[], simplex_iters=[], solve_times=[], sub_times=None,
-                 obj_values=[]):
+                 obj_values=[], iter_counts=[]):
         self.status = status
         self.x = x
         self.obj = obj
         self.n_iters = n_iters
+        self.iter_times = iter_times
         self.solve_time = solve_time
+        self.iter_counts = iter_counts
         self.alg_type = alg_type
         
         self.circuits = circuits
@@ -120,6 +66,8 @@ class result:
                    'obj_values': self.obj_values,
                    'n_iters': self.n_iters, 
                    'solve_time_total': self.solve_time,
+                   'iter_times': self.iter_times,
+                   'iter_counts': self.iter_counts,
                    'alg_type': self.alg_type}
         if self.alg_type == 'steepest-descent':
             results['simplex_iters'] = self.simplex_iters

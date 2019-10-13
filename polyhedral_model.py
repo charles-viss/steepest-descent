@@ -12,7 +12,7 @@ class PolyhedralModel():
     # as a gurobi linear program model
     def __init__(self, B, A=None, active_inds=[], c=None, primal=True, method='dual_simplex'):
         
-        print('Building polyhedral model...')
+        print('Building polyhedral model. Solve method: {}'.format(method))
         
         self.model = gp.Model()
         self.primal = primal
@@ -91,7 +91,7 @@ class PolyhedralModel():
             self.x[i].ub = INF
         self.set_active_inds(self.active_inds)
         self.set_method(self.method)
-        self.model.update()
+        #self.model.update()
         
                 
     def compute_sd_direction(self, verbose=False):
@@ -104,11 +104,12 @@ class PolyhedralModel():
             
         g = self.model.getAttr('x', self.x)
         y_pos = self.model.getAttr('x', self.y_pos)
+        y_neg = self.model.getAttr('x', self.y_neg)
         steepness = self.model.objVal
         num_steps = self.model.getAttr('IterCount')
         solve_time = self.model.getAttr('Runtime')
         
-        return np.asarray(g), np.asarray(y_pos), steepness, num_steps, solve_time
+        return np.asarray(g), np.asarray(y_pos), np.asarray(y_neg), steepness, num_steps, solve_time
                 
     def reset(self):
         self.model.reset()
