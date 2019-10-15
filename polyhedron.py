@@ -247,6 +247,6 @@ class Polyhedron:
                     circuit = -1*circuit
                 break
         return circuit
+
     
-    
-   
+
