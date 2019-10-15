@@ -42,11 +42,18 @@ Returns result object containing optimal solution, objective objective, solve ti
     while abs(steepness) > EPS:
         
         t3 = time.time()
-        obj_values.append(P.c.dot(x_current))
+        obj_value = P.c.dot(x_current)
+        obj_values.append(obj_value)
         iter_times.append(t3 - t1)
         
         # take maximal step
         x_current, alpha, active_inds = P.take_maximal_step(descent_direction, y_pos, y_neg)  
+        
+        if iteration % 50 == 0:
+            print('\nIteration {}'.format(iteration))
+            print('Objective: {}'.format(obj_value))
+            print('Steepness: {}'.format(steepness))
+            print('Step length: {}'.format(alpha))
         
         t4 = time.time()
         sub_times['step'].append(t4 - t3) 

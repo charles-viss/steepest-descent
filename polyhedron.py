@@ -144,7 +144,6 @@ class Polyhedron:
                         
     # find a feasible solution in the polyhedron
     def find_feasible_solution(self, verbose=False):
-        
         c_orig = np.copy(self.c)
         c = np.zeros(self.n)
         if self.model is None:
@@ -154,7 +153,7 @@ class Polyhedron:
         
         self.model.optimize()
         if self.model.status != gp.GRB.Status.OPTIMAL:
-            raise RuntimeError('Failed to find feasible solution.')
+            raise RuntimeError('Failed to find feasible solution.')        
         
         self.set_objective(c_orig)
         x_feasible = self.model.getAttr('x', self.x)  
@@ -213,11 +212,16 @@ class Polyhedron:
             raise RuntimeError('Failed to find feasible solution.')
         print('Feasible solution found with objective {}'.format(self.model.objVal))
         
-        # reset the modelto its original state
+        # reset the model to its original state
         for i in range(self.n):
             self.x[i].lb = -INF
             self.x[i].ub = INF
-        self.model.update()   
+        c_orig = np.copy(self.c)
+        self.set_objective(np.zeros(self.n))                  
+        self.model.optimize()
+        if self.model.status != gp.GRB.Status.OPTIMAL:
+            raise RuntimeError('Failed to set feasible solution.')                
+        self.set_objective(c_orig)
         
                 
     # return normalized circuit given a circuit direction of P
