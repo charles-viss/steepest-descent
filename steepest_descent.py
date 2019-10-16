@@ -49,7 +49,7 @@ Returns result object containing optimal solution, objective objective, solve ti
         # take maximal step
         x_current, alpha, active_inds = P.take_maximal_step(descent_direction, y_pos, y_neg)  
         
-        if iteration % 50 == 0:
+        if iteration % 50 == 0 or iteration == 1:
             print('\nIteration {}'.format(iteration))
             print('Objective: {}'.format(obj_value))
             print('Steepness: {}'.format(steepness))

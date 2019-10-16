@@ -11,7 +11,7 @@ METHODS = {'auto': -1,
            'deterministic_concurrent_simplex': 5,}
 
 INF = 10e100
-EPS = 10e-10
+EPS = 10e-8
 
 def avg(x):
     return float(sum(x)) / float(len(x))

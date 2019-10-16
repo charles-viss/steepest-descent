@@ -29,6 +29,7 @@ class Spindle(Polyhedron):
                 rhs = row.dot(self.p1)
             self.B.append(row)
             self.d.append(rhs)
+            assert row.dot(self.p2) < rhs
             
         # add facets containing p2 that do not contain p1
         for _ in range(self.n_cone_facets):
@@ -39,6 +40,7 @@ class Spindle(Polyhedron):
                 rhs = row.dot(self.p2)
             self.B.append(row)
             self.d.append(rhs)
+            assert row.dot(self.p1) < rhs
             
         # add parallel facets that don't contain p1 or p2 but contain other points of the unit cube
         for _ in range(self.n_parallel_facets):
