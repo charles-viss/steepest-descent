@@ -11,7 +11,7 @@ from partition_polytope import PartitionPolytope
 from spindle import Spindle
 
 
-def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex',
+def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex', reset=False,
          partition_polytope=False, n=0, k=0,
          spindle=False, spindle_dim=0, n_cone_facets=0, n_parallel_facets=0):
     
@@ -40,7 +40,16 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex',
     
     print('Finding feasible solution...')
     x_feasible = P.find_feasible_solution(verbose=False)
+    #x_feasible = np.load('solutions/{}_feasible.npy'.format(os.path.basename(mps_fn)))
+    #x_optimal = np.load('solutions/{}_optimal.npy'.format(os.path.basename(mps_fn)))
+    #n_facets = 11
+    #n_feasible_points = 15
+    #feasible_points = [x_optimal]
+    #for i in range(n_feasible_points):
+    #    feasible_points.append(np.load('solutions/{}_{}.npy'.format(os.path.basename(mps_fn), i)))
+    #P.add_facets(x_feasible, feasible_points, n_facets=n_facets)
     if partition_polytope or spindle:
+    #if True:
         print('Building gurobi model for simplex...')
         P.build_gurobi_model(c=c)
         P.set_solution(x_feasible)
@@ -51,7 +60,10 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex',
     print(lp_result)
     
     print('\nSolving with steepest descent...')
-    sd_result = sdac(P, x_feasible, c=c, method=sd_method, max_time=max_time)
+    sd_result = sdac(P, x_feasible, c=c, method=sd_method, max_time=max_time, reset=reset,
+                     #first_warm_start=(x_optimal - x_feasible),
+                     #save_first_steps=100, problem_name=os.path.basename(mps_fn),
+                    )
     print('\nSolution for {} using steepest-descent augmentation:'.format(os.path.basename(mps_fn)))
     print(sd_result)
     
@@ -66,10 +78,15 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex',
             prefix = 'n-{}_k-{}'.format(n, k)
         elif spindle:
             prefix = 'n-{}_c-{}_p-{}'.format(spindle_dim, n_cone_facets, n_parallel_facets)
+        #prefix = prefix + '_{}'.format(n_facets)
         lp_fn = os.path.join(results_dir, prefix + '_lp.p')
         sd_fn = os.path.join(results_dir, prefix + '_sd.p')
         lp_result.save(lp_fn)
-        sd_result.save(sd_fn)        
+        sd_result.save(sd_fn)          
+        
+        #x_optimal = lp_result.x
+        #np.save('solutions/{}_optimal.npy'.format(prefix), x_optimal)
+        #np.save('solutions/{}_feasible.npy'.format(prefix), x_feasible)
 
 
 if __name__ == "__main__":
@@ -83,6 +100,7 @@ if __name__ == "__main__":
     #parser.add_argument('--mps_fn', help='mps filename for problem to solve', default=mps_fn)
     parser.add_argument('--mps_fn', help='mps filename for problem to solve', default='')
     parser.add_argument('--sd_method', help='algorithm for computing s.d. directions', type=str, default='dual_simplex')
+    parser.add_argument('--reset', help='reset polyhedral model at each iteration (no warm starts)', action='store_true')
     
     parser.add_argument('--partition-polytope', help='use bounded/fixed-size partition polytope', action='store_true')
     parser.add_argument('--n', help='num items for partition polytope', type=int, default=0)
@@ -99,5 +117,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
-    main(mps_fn=args.mps_fn, results_dir=args.results_dir, max_time=args.max_time, sd_method=args.sd_method,
+    main(mps_fn=args.mps_fn, results_dir=args.results_dir, max_time=args.max_time, 
+         sd_method=args.sd_method, reset=args.reset,
          partition_polytope=args.partition_polytope, n=args.n, k=args.k)

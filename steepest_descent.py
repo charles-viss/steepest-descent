@@ -1,10 +1,12 @@
 import math
 import time
+import numpy as np
 
 from utils import result, EPS
 
-def steepest_descent_augmentation_scheme(P, x, c=None, verbose=False, method='dual_simplex',
-                                         max_time=300):
+def steepest_descent_augmentation_scheme(P, x, c=None, verbose=False, method='dual_simplex', reset=False,
+                                         max_time=300, first_warm_start=None,
+                                         save_first_steps=0, problem_name=''):
     """
 Given a polyhedron P with feasible point x and an objective function c,
 solve the linear program min{c^T x : x in P} via the steepest descent circuit augmentation scheme.
@@ -16,8 +18,13 @@ Returns result object containing optimal solution, objective objective, solve ti
  
     t0 = time.time()
     x_current = x
+    if save_first_steps:
+        np.save('solutions/{}_0.npy'.format(problem_name), x_current)
     active_inds = P.get_active_constraints(x_current)
     pm = P.build_polyhedral_model(active_inds=active_inds, method=method)
+    if first_warm_start is not None:
+        print('Using custom warm start')
+        pm.set_solution(first_warm_start)
     t1 = time.time()
     build_time = t1 - t0
     print('Polyhedral model build time: {}'.format(build_time))
@@ -29,7 +36,10 @@ Returns result object containing optimal solution, objective objective, solve ti
     iter_times = []
     simplex_iters = []
     iteration = 0
-    t2 = time.time()   
+    t2 = time.time()
+    obj_value = P.c.dot(x_current)
+    obj_values.append(obj_value)
+    iter_times.append(t2 - t1)
     
     # compute steepest-descent direction
     descent_direction, y_pos, y_neg, steepness, num_steps, solve_time = pm.compute_sd_direction(verbose=verbose)
@@ -42,9 +52,8 @@ Returns result object containing optimal solution, objective objective, solve ti
     while abs(steepness) > EPS:
         
         t3 = time.time()
-        obj_value = P.c.dot(x_current)
-        obj_values.append(obj_value)
-        iter_times.append(t3 - t1)
+        if reset:
+            pm.reset()
         
         # take maximal step
         x_current, alpha, active_inds = P.take_maximal_step(descent_direction, y_pos, y_neg)  
@@ -56,6 +65,9 @@ Returns result object containing optimal solution, objective objective, solve ti
             print('Step length: {}'.format(alpha))
         
         t4 = time.time()
+        obj_value = P.c.dot(x_current)
+        obj_values.append(obj_value)
+        iter_times.append(t4 - t1)
         sub_times['step'].append(t4 - t3) 
         descent_circuits.append(descent_direction)
         step_sizes.append(alpha)     
@@ -77,6 +89,8 @@ Returns result object containing optimal solution, objective objective, solve ti
         current_time = t5 - t1
         if current_time > max_time:
             return result(status=2)
+        if iteration <= save_first_steps:
+            np.save('solutions/{}_{}.npy'.format(problem_name, iteration), x_current)
 
     t6 = time.time()
     total_time = t6 - t1   

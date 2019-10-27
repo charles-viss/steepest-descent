@@ -251,6 +251,29 @@ class Polyhedron:
                     circuit = -1*circuit
                 break
         return circuit
+    
+    
+    # add random facets containing the given points well keeping the other given points feasible
+    def add_facets(self, include_point, feasible_points=[], n_facets=1):
+        if not isinstance(feasible_points, list):
+            feasible_points = [feasible_points]
+        print('Adding {} facets...'.format(n_facets))
+        for _ in range(n_facets):
+            while True:
+                row = np.random.randint(-100, 100, size=self.n)
+                rhs = row.dot(include_point)
+                keep = True
+                for point in feasible_points:
+                    if row.dot(point) > rhs:
+                        keep = False
+                if keep: 
+                    break
+                    
+            self.B = np.concatenate((self.B, np.expand_dims(row, axis=0)))
+            self.d = np.concatenate((self.d, np.array([rhs])))
+            
+            
+        
 
     
 

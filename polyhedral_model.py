@@ -75,6 +75,8 @@ class PolyhedralModel():
           
     # warm start the model with the provided solution   
     def set_solution(self, g):
+        print(g.shape)
+        print(self.n)
         for i in range(self.n):
             self.x[i].lb = g[i]
             self.x[i].ub = g[i]
@@ -89,6 +91,12 @@ class PolyhedralModel():
         for i in range(self.n):
             self.x[i].lb = -INF
             self.x[i].ub = INF
+        self.model.setObjective(gp.LinExpr(np.zeros(self.n), self.x))                
+        self.model.optimize()
+        if self.model.status != gp.GRB.Status.OPTIMAL:
+            raise RuntimeError('Failed to set solution for polyhedral model') 
+            
+        self.set_objective(self.c)                
         self.set_active_inds(self.active_inds)
         self.set_method(self.method)
         #self.model.update()
