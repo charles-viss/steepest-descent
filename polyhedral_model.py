@@ -1,8 +1,9 @@
 import numpy as np
 import gurobipy as gp
 import contextlib
+import time
 
-from utils import METHODS, INF
+from utils import METHODS, INF, EPS
 
 
 class PolyhedralModel():
@@ -106,10 +107,23 @@ class PolyhedralModel():
         flag = 1 if verbose else 0
         self.model.setParam(gp.GRB.Param.OutputFlag, flag)
         
-        self.model.optimize()
+        t0 = time.time()
+        self.model._phase1_time = None
+        self.model._is_dualinf = True
+        def dualinf_callback(model, where):
+            if where == gp.GRB.Callback.SIMPLEX:
+                if model._is_dualinf:
+                    dualinf = model.cbGet(gp.GRB.Callback.SPX_DUALINF)
+                    if dualinf < EPS:
+                        model._phase1_time = time.time() - t0
+                        model._is_dualinf = False
+        
+        self.model.optimize(dualinf_callback)
         if self.model.status != gp.GRB.Status.OPTIMAL:
             raise RuntimeError('Failed to find steepst-descent direction.')
-            
+        
+        phase2_time = time.time() - self.model._phase1_time
+        phase_times = (self.model._phase1_time, phase2_time)
         g = self.model.getAttr('x', self.x)
         y_pos = self.model.getAttr('x', self.y_pos)
         y_neg = self.model.getAttr('x', self.y_neg)
@@ -117,7 +131,21 @@ class PolyhedralModel():
         num_steps = self.model.getAttr('IterCount')
         solve_time = self.model.getAttr('Runtime')
         
-        return np.asarray(g), np.asarray(y_pos), np.asarray(y_neg), steepness, num_steps, solve_time
+        return np.asarray(g), np.asarray(y_pos), np.asarray(y_neg), steepness, num_steps, solve_time, phase_times
+    
+    # find a feasible solution for the polyhedral model
+    def find_feasible_solution(self, verbose=False):
+        c_orig = np.copy(self.c)
+        c = np.zeros(self.n)
+        self.set_objective(c)           
+        
+        self.model.optimize()
+        if self.model.status != gp.GRB.Status.OPTIMAL:
+            raise RuntimeError('Failed to find feasible solution.')        
+        
+        self.set_objective(c_orig)
+        x_feasible = self.model.getAttr('x', self.x)  
+        return x_feasible
                 
     def reset(self):
         self.model.reset()

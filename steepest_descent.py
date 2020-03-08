@@ -19,8 +19,9 @@ Returns result object containing optimal solution, objective objective, solve ti
     t0 = time.time()
     x_current = x
     if save_first_steps:
-        np.save('solutions/{}_0.npy'.format(problem_name), x_current)
+        np.save('solutions/{}_0.npy'.format(problem_name), x_current)      
     active_inds = P.get_active_constraints(x_current)
+    
     pm = P.build_polyhedral_model(active_inds=active_inds, method=method)
     if first_warm_start is not None:
         print('Using custom warm start')
@@ -29,22 +30,23 @@ Returns result object containing optimal solution, objective objective, solve ti
     build_time = t1 - t0
     print('Polyhedral model build time: {}'.format(build_time))
     
-    sub_times = {'sd': [], 'step': [], 'solve': []}    
+    sub_times = {'sd': [], 'step': [], 'solve': [], 'phase_times': []}    
     descent_circuits = []
     obj_values = []
     step_sizes = []
     iter_times = []
     simplex_iters = []
     iteration = 0
-    t2 = time.time()
     obj_value = P.c.dot(x_current)
     obj_values.append(obj_value)
+    t2 = time.time()
     iter_times.append(t2 - t1)
     
     # compute steepest-descent direction
-    descent_direction, y_pos, y_neg, steepness, num_steps, solve_time = pm.compute_sd_direction(verbose=verbose)
+    descent_direction, y_pos, y_neg, steepness, num_steps, solve_time, phase_times = pm.compute_sd_direction(verbose=verbose)
     simplex_iters.append(num_steps)
     sub_times['solve'].append(solve_time)
+    sub_times['phase_times'].append(phase_times)
     
     t3 = time.time()
     sub_times['sd'].append(t3 - t2)
@@ -78,11 +80,13 @@ Returns result object containing optimal solution, objective objective, solve ti
         
         # compute steepest-descent direction
         pm.set_active_inds(active_inds)
-        descent_direction, y_pos, y_neg, steepness, num_steps, solve_time = pm.compute_sd_direction(verbose=verbose)
+        descent_direction, y_pos, y_neg, steepness, num_steps, solve_time, phase_times = pm.compute_sd_direction(
+                                                                                                verbose=verbose)
         
         t5 = time.time()
         sub_times['sd'].append(t5 - t4)
         sub_times['solve'].append(solve_time)
+        sub_times['phase_times'].append(phase_times)
         simplex_iters.append(num_steps)
         
         iteration += 1
