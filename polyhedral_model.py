@@ -5,7 +5,6 @@ import time
 
 from utils import METHODS, INF, EPS
 
-
 class PolyhedralModel():
     
     # Given matrices B and A (and optional inds argument / objective function),

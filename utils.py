@@ -17,8 +17,7 @@ def avg(x):
     return float(sum(x)) / float(len(x))
 
 
-class result:
-    
+class result:  
     def __init__(self, status, x=None, obj=None, n_iters=None, solve_time=None, iter_times=[], alg_type='simplex',
                  circuits=[], steps=[], simplex_iters=[], solve_times=[], sub_times=None,
                  obj_values=[], iter_counts=[]):

@@ -1,17 +1,17 @@
-from mps_reader_preprocessor import read_mps_preprocess
-from polyhedron import Polyhedron
-from steepest_descent import steepest_descent_augmentation_scheme as sdac
 import time
 import random
 import os
-import random
 import numpy as np
 
+from mps_reader_preprocessor import read_mps_preprocess
+from polyhedron import Polyhedron
+from steepest_descent import steepest_descent_augmentation_scheme as sdac
 from partition_polytope import PartitionPolytope
 from spindle import Spindle
 
 
-def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex', reset=False,
+def main(mps_fn='', results_dir='results',
+         max_time=300, sd_method='dual_simplex', reset=False,
          partition_polytope=False, n=0, k=0,
          spindle=False, spindle_dim=0, n_cone_facets=0, n_parallel_facets=0):
     
@@ -36,20 +36,11 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex', re
         P = Spindle(spindle_dim, n_cone_facets, n_parallel_facets)
         c = P.c
     else:
-        raise RuntimeError('Provide argument for constructing polyhedron.')
+        raise RuntimeError('Provide arguments for constructing polyhedron.')
     
     print('Finding feasible solution...')
     x_feasible = P.find_feasible_solution(verbose=False)
-    #x_feasible = np.load('solutions/{}_feasible.npy'.format(os.path.basename(mps_fn)))
-    #x_optimal = np.load('solutions/{}_optimal.npy'.format(os.path.basename(mps_fn)))
-    #n_facets = 11
-    #n_feasible_points = 15
-    #feasible_points = [x_optimal]
-    #for i in range(n_feasible_points):
-    #    feasible_points.append(np.load('solutions/{}_{}.npy'.format(os.path.basename(mps_fn), i)))
-    #P.add_facets(x_feasible, feasible_points, n_facets=n_facets)
     if partition_polytope or spindle:
-    #if True:
         print('Building gurobi model for simplex...')
         P.build_gurobi_model(c=c)
         P.set_solution(x_feasible)
@@ -60,15 +51,9 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex', re
     print(lp_result)
     
     print('\nSolving with steepest descent...')
-    sd_result = sdac(P, x_feasible, c=c, method=sd_method, max_time=max_time, reset=reset,
-                     #first_warm_start=(x_optimal - x_feasible),
-                     #save_first_steps=100, problem_name=os.path.basename(mps_fn),
-                    )
+    sd_result = sdac(P, x_feasible, c=c, method=sd_method, max_time=max_time, reset=reset)
     print('\nSolution for {} using steepest-descent augmentation:'.format(os.path.basename(mps_fn)))
     print(sd_result)
-    
-    print('\n\nSolution for {} using simplex method:'.format(os.path.basename(mps_fn)))
-    print(lp_result)
     
     if results_dir:
         if not os.path.exists(results_dir): os.mkdir(results_dir)
@@ -78,26 +63,16 @@ def main(mps_fn='', results_dir=None, max_time=300, sd_method='dual_simplex', re
             prefix = 'n-{}_k-{}'.format(n, k)
         elif spindle:
             prefix = 'n-{}_c-{}_p-{}'.format(spindle_dim, n_cone_facets, n_parallel_facets)
-        #prefix = prefix + '_{}'.format(n_facets)
         lp_fn = os.path.join(results_dir, prefix + '_lp.p')
         sd_fn = os.path.join(results_dir, prefix + '_sd.p')
         lp_result.save(lp_fn)
-        sd_result.save(sd_fn)          
-        
-        #x_optimal = lp_result.x
-        #np.save('solutions/{}_optimal.npy'.format(prefix), x_optimal)
-        #np.save('solutions/{}_feasible.npy'.format(prefix), x_feasible)
+        sd_result.save(sd_fn)
 
 
-if __name__ == "__main__":
-    
-    mps_fns = os.listdir(problem_dir)
-    mps_fn = random.choice(mps_fns)
-    
+if __name__ == "__main__":   
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
 
-    #parser.add_argument('--mps_fn', help='mps filename for problem to solve', default=mps_fn)
     parser.add_argument('--mps_fn', help='mps filename for problem to solve', default='')
     parser.add_argument('--sd_method', help='algorithm for computing s.d. directions', type=str, default='dual_simplex')
     parser.add_argument('--reset', help='reset polyhedral model at each iteration (no warm starts)', action='store_true')
@@ -112,8 +87,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_parallel_facets', help='number of pairs of parallel facet in spindle', type=int, default=0)
     
     parser.add_argument('--results_dir', help='directory for saving results', default='results')
-    parser.add_argument('--max_time', help='max time for steepest descent algorithm in seconds',
-                        default=300)
+    parser.add_argument('--max_time', help='max time for steepest descent algorithm in seconds', default=300)
 
     args = parser.parse_args()
     
