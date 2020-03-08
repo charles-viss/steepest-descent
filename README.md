@@ -4,11 +4,11 @@ An implementation of the steepest-descent circuit augmentation scheme for solvin
 
 The purpose of this repo is to provide an actual implementation of the steepest-descent scheme, one of several _circuit augmentation schemes_ for solving linear programs. As a generalization of the edge directions of polyhedra, the circuits of polyhedra play a fundamental role in the theory of linear programming. Augmentation schemes which take steps along circuits generalize the simplex method; however, unlike the simplex method, the schemes are not restricted to only the edges of a polyhedron and may traverse its interior. Thus, the _Polynomial Hirsch Conjecture_ need not be true for there to exist a strongly-polynomial time circuit augmentation scheme. Additionally, circuits have natural combinatorial interpretations for many classical families of linear programs.
 
-The challenge in implementing most circuit augmentations schemes lies in computing the required circuits. However, as shown in https://arxiv.org/abs/1811.00444, a polyhedral model for the set of circuits facilitates the efficient computation of a steepest-descent circuit via a linear programming oracle. We use a dynamic version of this oracle to compute these steepest-descent circuits, with each computed direction serving as a warm-start for the program in the following iteration. This repo therefore provides an opportunity to explore the behavior of the steepest-descent augmentation scheme when applied to real-world problems. We compare its performance to that of the simplex method, and compare our proposed approach for other possible implementations.
+The challenge in implementing most circuit augmentations schemes lies in computing the required circuits. However, as shown in https://arxiv.org/abs/1811.00444, a polyhedral model for the set of circuits facilitates the efficient computation of a steepest-descent circuit via a linear programming oracle. We use a dynamic version of this oracle to compute these steepest-descent circuits, with each computed direction serving as a warm-start for the program in the following iteration. This repo therefore provides an opportunity to explore the behavior of the steepest-descent augmentation scheme when applied to real-world problems. We compare its performance to that of the simplex method, and compare our proposed approach to other possible implementations.
 
 ## Requirements
 
-Requires Python 3.5+ and the GurobiPy Optimizer (https://www.gurobi.com/), along with the following modules:
+Requires Python 3.5+ and the Gurobi Optimizer (https://www.gurobi.com/), along with the following modules:
 * GurobiPy
 * numpy
 * cvxopt
